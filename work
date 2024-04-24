@@ -1,0 +1,263 @@
+#include <iostream>
+#include <vector>
+#include <queue>
+#include <string>
+using namespace std;
+class Customer
+{
+private:
+    std::string name;//姓名
+    int accountNumber;//账户号
+    double balance;//卡内余额
+
+public:
+    Customer(const std::string& n, int accNum, double bal)
+        : name(n), accountNumber(accNum), balance(bal)
+    {
+    }
+
+    std::string getName() const//输入姓名
+    {
+        return name;
+    }
+
+    int getAccountNumber() const//输入卡号
+    {
+        return accountNumber;
+    }
+
+    void deposit(double amount)//存款
+    {
+        balance += amount;
+        std::cout << "存款成功，当前余额为: " << balance << std::endl;
+    }
+
+    void withdraw(double amount)//取款
+    {
+        if (balance >= amount)
+        {
+            balance -= amount;
+            std::cout << "取款成功，当前余额为: " << balance << std::endl;
+        }
+        else
+        {
+            std::cout << "余额不足，取款失败" << std::endl;
+        }
+    }
+};
+
+class Bank
+{
+private:
+    std::vector<Customer> customers;//用户表
+    std::vector<std::queue<int>> windows;//窗口
+    int count;
+
+public:
+    Bank(int numWindows)//初始化成员变量
+    {
+        windows.resize(numWindows);
+        count = 0;
+    }
+
+    void addCustomer(const std::string& name, int accountNumber, double balance)//开户
+    {
+        Customer newCustomer(name, accountNumber, balance);
+        customers.push_back(newCustomer);
+
+        int minQueueLength = windows[0].size();
+        int minIndex = 0;
+        for (size_t i = 1; i < windows.size(); ++i)
+        {
+            if (windows[i].size() < minQueueLength)
+            {
+                minQueueLength = windows[i].size();
+                minIndex = i;
+            }
+        }
+
+        windows[minIndex].push(accountNumber);
+
+        std::cout << "开户成功，窗口号为：" << minIndex + 1 << "，您的号码是："
+            << accountNumber << std::endl;
+        count++;
+    }
+
+    void deleteCustomer(int accountNumber)//销户
+    {
+        for (auto it = customers.begin(); it != customers.end(); ++it)
+        {
+            if (it->getAccountNumber() == accountNumber)
+            {
+                customers.erase(it);
+                std::cout << "销户成功" << std::endl;
+                return;
+            }
+        }
+        std::cout << "未找到对应账户，销户失败" << std::endl;
+        count--;
+    }
+    int getCount()//排队人数
+    {
+        return count++;
+    }
+    Customer* findCustomer(int accountNumber)//根据账户id查找信息
+    {
+        for (auto& customer : customers)
+        {
+            if (customer.getAccountNumber() == accountNumber)
+            {
+                return &customer;
+            }
+        }
+        return nullptr;
+    }
+    // void assignWindow(int accountNumber)
+    // {
+    //     int minQueueLength = windows[0].size();
+    //     int minIndex = 0;
+
+    //     // 找到队列最短的窗口
+    //     for (size_t i = 1; i < windows.size(); ++i)
+    //     {
+    //         if (windows[i].size() < minQueueLength)
+    //         {
+    //             minQueueLength = windows[i].size();
+    //             minIndex = i;
+    //         }
+    //     }
+
+    //     // 将新客户分配到最短队列的窗口中
+    //     windows[minIndex].push(accountNumber);
+    //     std::cout << "客户号为 " << accountNumber << " 的客户被分配到窗口 " << minIndex + 1 << std::endl;
+    // }
+
+    void serveCustomer(int windowNum)//提供服务主函数
+    {
+        if (windowNum < 1 || windowNum > windows.size())
+        {
+            std::cout << "无效的窗口号" << std::endl;
+            return;
+        }
+
+        if (windows[windowNum - 1].empty())
+        {
+            std::cout << "窗口 " << windowNum << " 没有客户在排队" << std::endl;
+            return;
+        }
+
+        int currentCustomer = windows[windowNum - 1].front();
+        Customer* customer = findCustomer(currentCustomer);
+        if (customer != nullptr)
+        {
+            int choice;
+            std::cout << "窗口 " << windowNum << " 为客户 " << customer->getName() << " 提供服务" << std::endl;
+            std::cout << "请选择操作:" << std::endl;
+            std::cout << "1. 存款" << std::endl;
+            std::cout << "2. 取款" << std::endl;
+            std::cout << "3. 开户" << std::endl;
+            std::cout << "4. 销户" << std::endl;
+            std::cin >> choice;
+
+            switch (choice)
+            {
+            case 1:
+            {
+                double amount;
+                std::cout << "请输入存款金额: ";
+                std::cin >> amount;
+                customer->deposit(amount);
+                break;
+            }
+            case 2:
+            {
+                double amount;
+                std::cout << "请输入取款金额: ";
+                std::cin >> amount;
+                customer->withdraw(amount);
+                break;
+            }
+            case 3:
+            {
+                std::string name;
+                int accountNum;
+                double balance;
+                std::cout << "请输入新客户姓名: ";
+                std::cin >> name;
+                // std::cout << "请输入新客户账户号码: ";
+                // std::cin >> accountNum;
+                accountNum = 1000 + getCount();
+                std::cout << "请输入新客户初始存款金额: ";
+                std::cin >> balance;
+                addCustomer(name, accountNum, balance);
+                break;
+            }
+            case 4:
+            {
+                deleteCustomer(currentCustomer);
+                break;
+            }
+            default:
+                std::cout << "无效的选项" << std::endl;
+                break;
+            }
+            windows[windowNum - 1].pop();
+        }
+    }
+};
+
+int main()
+{
+    const int NUM_WINDOWS = 3;
+    Bank bank(NUM_WINDOWS);
+
+    // 示例：添加客户
+    bank.addCustomer("Alice", 1001, 5000);
+    bank.addCustomer("Bob", 1002, 3000);
+    bank.addCustomer("Charlie", 1003, 2000);
+    bank.addCustomer("David", 1004, 4000);
+
+    int choice = 0;
+
+    while (choice != 5)
+    { // 5代表退出系统
+        std::cout << "请选择操作:" << std::endl;
+        std::cout << "1. 窗口提供服务" << std::endl;
+        std::cout << "2. 登记..." << std::endl;
+        std::cout << "0. 退出系统" << std::endl;
+        std::cin >> choice;
+        bool isExit = false;
+        switch (choice)
+        {
+        case 1:
+            for (int i = 1; i <= NUM_WINDOWS; ++i)
+            {
+                bank.serveCustomer(i);
+            }
+            break;
+        case 2:
+            // 添加其他操作的逻辑
+        {
+            string name;
+            cout << "输入姓名" << endl;
+            cin >> name;
+            int id = 1000 + bank.getCount();
+            bank.addCustomer(name, id, 0);
+            // bank.assignWindow(id);
+        }
+        break;
+        case 0:
+            std::cout << "已退出系统" << std::endl;
+            isExit = true;
+            break;
+        default:
+            std::cout << "无效的选项" << std::endl;
+            break;
+        }
+        if (isExit)
+        {
+            break;
+        }
+    }
+    return 0;
+}
